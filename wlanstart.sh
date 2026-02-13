@@ -87,8 +87,9 @@ fi
 echo "Configuring DHCP server and port forwarding .."
 echo "dhcp-range=${SUBNET::-1}101,${SUBNET::-1}150,255.255.255.0,6h" > /etc/dnsmasq.conf
 
-## port forwarding to cameras
+## set up port forwarding to cameras
 sysctl -w net.ipv4.ip_forward=1
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 echo "streams:" > /etc/go2rtc.yaml
 NUM=0
@@ -101,6 +102,8 @@ do
     RTC_PORT=$(printf '198%02d' ${NUM})
     iptables -t nat -A PREROUTING -p tcp --dport $RTC_PORT -j DNAT --to-destination ${IP}:1984
     iptables -t nat -A PREROUTING -p tcp --dport $RTSP_PORT -j DNAT --to-destination ${IP}:8554
+    iptables -A FORWARD -p tcp -d ${IP} --dport 1984 -j ACCEPT
+    iptables -A FORWARD -p tcp -d ${IP} --dport 8554 -j ACCEPT
 
     echo "=== Camera wyzecam$NUM: MAC $CAM Internal IP $IP RTSP $RTSP_PORT RTC $RTC_PORT"
 
@@ -108,6 +111,7 @@ do
 done
 
 iptables -t nat -A POSTROUTING -j MASQUERADE
+iptables -P FORWARD DROP
 
 echo "Configuring NTP server .."
 cat > /etc/chrony/chrony.conf <<EOF
