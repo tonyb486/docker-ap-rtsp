@@ -45,8 +45,8 @@ country US: DFS-FCC
 
 This requires access to docker socket, so it can run a short lived
 container that reattaches network interface to network namespace of this
-container. This keeps the wireless device in the same namespace as
-the wireguard interface.
+container. This keeps the wireless device in the network namespace, and lets
+us set up a firewall in there.
 
 There is a sample compose.yml below.
 
