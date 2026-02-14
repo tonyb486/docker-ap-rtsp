@@ -52,7 +52,7 @@ There is a sample compose.yml included.
 
 For CAM_MACS, provide a comma separated list of all camera MAC addresses.
 
-```
+```yaml
 services:
     docker-ap-rtsp:
         image: docker-ap-rtsp
@@ -63,10 +63,9 @@ services:
             TZ: America/New_York
             INTERFACE: wlan0
             SSID: rtspcam
-            CAM_MACS: {MACADDRESS},{MACADDRESS},{MACADDRESS}
-            WPA_PASSPHRASE: {PASSWORD}
+            CAM_MACS: MACADDRESS,MACADDRESS,MACADDRESS
+            WPA_PASSPHRASE: PASSWORD_FOR_WIFI
             CONTAINER_NAME: docker-ap-rtsp
-            PUBLIC: false
         ports:
             - 19800-19899:19800-19899
             - 55400-55499:55400-55499
@@ -74,6 +73,7 @@ services:
         volumes:
             - /sys:/sys:rw
             - /var/run/docker.sock:/var/run/docker.sock:rw
+        restart: always
 ```
 
 The script forwards ports 198xx and 554xx to 1984 and 8554 on each.
@@ -81,13 +81,13 @@ The script forwards ports 198xx and 554xx to 1984 and 8554 on each.
 You'll see this in the output for reference:
 
 ```
-docker-ap-rtsp-1  | === Camera wyzecam0: MAC D0:3F:27:80:E7:FE Internal IP 192.168.254.10 RTSP 55400 RTC 19800
-docker-ap-rtsp-1  | === Camera wyzecam1: MAC D0:3F:27:80:DA:98 Internal IP 192.168.254.11 RTSP 55401 RTC 19801
+=== Camera wyzecam0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
+=== Camera wyzecam1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
 ```
 
 Configure your camera to provide RTSP on port 8554, and to use 192.168.254.1 as an NTP server.
 
-I use wyze cameras with modified firmware for this.
+I use wyze cameras with modified firmware for this. I have a [forked repository](https://github.com/tonyb486/wz_mini_hacks) for the firmware I use. The original is a bit rough around the edges, I modified it by upgrading the go2rtc and ffmpeg binaries with new ones.
 
 ## License
 
