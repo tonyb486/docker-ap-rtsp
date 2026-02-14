@@ -48,7 +48,7 @@ container that reattaches network interface to network namespace of this
 container. This keeps the wireless device in the same namespace as
 the wireguard interface.
 
-There is a sample compose.yml included.
+There is a sample compose.yml below.
 
 For CAM_MACS, provide a comma separated list of all camera MAC addresses.
 
