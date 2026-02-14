@@ -76,9 +76,9 @@ services:
         restart: always
 ```
 
-The script forwards ports 198xx and 554xx to 1984 and 8554 on each.
+The script forwards ports 198xx and 554xx to 1984 and 8554 on each. So, for the first camera, port 55400 will go to port 8554 on the camera. For the second, port 55401 will go to port 8554 on the camera. This continues for as many as you list in the CAM_MACS.
 
-You'll see this in the output for reference:
+You'll see this in the output for your reference:
 
 ```
 === Camera wyzecam0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
