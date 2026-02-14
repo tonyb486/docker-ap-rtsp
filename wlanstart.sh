@@ -60,29 +60,6 @@ ip link set ${INTERFACE} up
 ip addr flush dev ${INTERFACE}
 ip addr add ${AP_ADDR}/24 dev ${INTERFACE}
 
-###
-###
-
-if [ $PUBLIC == "true" ]; then
-
-    echo "Setting iptables for outgoing traffic..."
-
-    sysctl -w net.ipv4.ip_dynaddr=1
-    sysctl -w net.ipv4.ip_forward=1
-
-    iptables -t nat -D POSTROUTING -s ${SUBNET}/24 -j MASQUERADE > /dev/null 2>&1 || true
-    iptables -t nat -A POSTROUTING -s ${SUBNET}/24 -j MASQUERADE
-
-    iptables -D FORWARD -o ${INTERFACE} -m state --state RELATED,ESTABLISHED -j ACCEPT > /dev/null 2>&1 || true
-    iptables -A FORWARD -o ${INTERFACE} -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-    iptables -D FORWARD -i ${INTERFACE} -j ACCEPT > /dev/null 2>&1 || true
-    iptables -A FORWARD -i ${INTERFACE} -j ACCEPT
-
-fi
-###
-###
-
 # Set up DHCP
 echo "Configuring DHCP server and port forwarding .."
 echo "dhcp-range=${SUBNET::-1}101,${SUBNET::-1}150,255.255.255.0,6h" > /etc/dnsmasq.conf

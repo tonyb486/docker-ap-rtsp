@@ -1,4 +1,4 @@
-# Docker container stack: hostap + dhcp server + wireguard
+# Docker container stack: hostap + dhcp server + RTSP tunnel
 
 This container starts wireless access point (hostap) and dhcp server (dnsmasq) in a docker
 container. It does not provide Internet access to connected devices. Instead, it provides
