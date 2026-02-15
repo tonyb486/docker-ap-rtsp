@@ -5,12 +5,7 @@ services:
         build: .
         cap_add:
             - NET_ADMIN
-        environment:
-            TZ: America/New_York
-            INTERFACE: INTERFACE_NAME
-            SSID: rtspcam
-            CAM_MACS: MAC1,MAC2
-            WPA_PASSPHRASE: PASSWORD
+        env_file: rtsp.env
         ports:
             - 19800-19899:19800-19899
             - 55400-55499:55400-55499
@@ -27,8 +22,8 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - /var/run/docker/netns:/var/run/netns
+        env_file: rtsp.env
         environment:
-            INTERFACE: wlx503dd129d350
             TARGET_CONTAINER: docker-ap-rtsp
         entrypoint:
             - /bin/sh

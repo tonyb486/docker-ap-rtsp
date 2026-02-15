@@ -84,6 +84,9 @@ do
 done
 
 iptables -t nat -A POSTROUTING -j MASQUERADE
+
+# this container shouldn't have internet anyway, but
+# we'll firewall it just in case.
 iptables -P FORWARD DROP
 
 # busybox ntpd will serve the time from the system clock

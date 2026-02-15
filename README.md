@@ -43,41 +43,36 @@ country US: DFS-FCC
 
 ## Build / run
 
-This requires access to docker socket, so it can run a short lived
-container that reattaches network interface to network namespace of this
+This includes a compose.yml file, and is intended to be used with docker compose. It runs two containers, one is a short-lived container in privileged mode, the other is the main container in a private netns with CAP_NET_ADMIN.
+
+The short-lived container requires access to docker socket, so it attach the wireless network interface to network namespace of this
 container. This keeps the wireless device in the network namespace, and lets
 us set up a firewall in there.
 
-There is a sample compose.yml that runs both containers, you should use it.
-
-It includes:
-
-- The container itself, which runs unprivileged in its own netns.
-- A helper that runs briefly at startup in privileged mode to grant the main containe access to the wireless device.
-
-Adjust it to define the wireless interface to be used (listed twice), the SSID,
+Create a file, rtsp.env, and add in your interface (e.g., wlan0), the SSID you want to use, the password for that SSID, and a list of MAC addresses.
 
 ```
-            INTERFACE: INTERFACE_NAME
-            SSID: rtspcam
-            CAM_MACS: MAC1,MAC2
+TZ: America/New_York
+INTERFACE: WIRELESS_DEVICE_NAME
+SSID: rtspcam
+CAM_MACS: MAC1,MAC2,...
+WPA_PASSPHRASE: WIRELESS_PASSWORD
 ```
 
-If you run outside of compose, you'll have to attach the device yourself, read
-compose.yml.sample for how to do this.
+A sample, rtsp.env.sample, is provided containing the above.
 
-The container forwards ports 198xx and 554xx to 1984 and 8554 on each. So, for the first camera, port 55400 will go to port 8554 on the camera. For the second, port 55401 will go to port 8554 on the camera. This continues for as many as you list in the CAM_MACS.
+The container forwards ports 198xx and 554xx to 80 and 554 on each of the cameras you have attached, based on their mac address order listed. So, for the first camera, port 55400 will go to port 554 on the camera, and port 19800 will go to 80 on the camera. For the second, port 55401 will go to port 554 on the camera, etc. This continues for as many as you list in the CAM_MACS.
 
 You'll see this in the output for your reference:
 
 ```
-
 === Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
 === Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
-
 ```
 
-Configure your camera to provide RTSP on port 8554, and to use 192.168.254.1 as an NTP server.
+These are the only port forwards.
+
+Configure your camera to provide RTSP on port 554, and to use 192.168.254.1 as an NTP server, as the container also includes a basic ntp server to synchronize the clocks on your cameras with.
 
 I use wyze cameras with OpenIPC for this.
 
