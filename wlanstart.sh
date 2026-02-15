@@ -1,12 +1,18 @@
 #!/bin/bash -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# this is our whole init system
+handle_shutdown() {
+  echo "Shutting down..."
+  for i in hostapd ntpd dnsmasq; do
+    echo "Stopping $i..."
+    pkill $i && while pgrep -l $i>/dev/null; do sleep 1;done;
+  done;
+  echo "Done!"
+  exit 0
+}
+trap handle_shutdown SIGINT SIGTERM
 
-# Check if running in privileged mode
-if [ ! -w "/sys" ] ; then
-    echo "[Error] Not running in privileged mode."
-    exit 1
-fi
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Default values
 true ${INTERFACE:=wlan0}
@@ -20,17 +26,11 @@ true ${DRIVER:=nl80211}
 true ${HT_CAPAB:=[HT40-][SHORT-GI-20][SHORT-GI-40]}
 true ${CONTAINER_NAME:=hostapd}
 
+echo "Waiting for wireless interface to be attached to container..."
 
-CONTAINER_ID=$(docker ps --filter "name=${CONTAINER_NAME}" --format "{{.ID}}")
-echo "Attaching interface ${INTERFACE} to container ${CONTAINER_NAME} ${CONTAINER_ID}"
-
-CONTAINER_PID=$(docker inspect -f '{{.State.Pid}}' ${CONTAINER_ID})
-CONTAINER_IMAGE=$(docker inspect -f '{{.Config.Image}}' ${CONTAINER_ID})
-
-docker run -t --privileged --net=host --pid=host --rm --entrypoint /bin/sh ${CONTAINER_IMAGE} -c "
-    PHY=\$(echo phy\$(iw dev ${INTERFACE} info | grep wiphy | tr ' ' '\n' | tail -n 1))
-    iw phy \$PHY set netns ${CONTAINER_PID}
-"
+until ifconfig ${INTERFACE} 2>/dev/null; do
+    sleep 1;
+done
 
 cat > "/etc/hostapd.conf" <<EOF
 interface=${INTERFACE}
@@ -49,9 +49,6 @@ ht_capab=${HT_CAPAB}
 wmm_enabled=1
 EOF
 
-# unblock wlan
-rfkill unblock wlan
-
 # Set up the interface
 echo "Setting interface ${INTERFACE}"
 
@@ -63,26 +60,25 @@ ip addr add ${AP_ADDR}/24 dev ${INTERFACE}
 # Set up DHCP
 echo "Configuring DHCP server and port forwarding .."
 echo "dhcp-range=${SUBNET::-1}101,${SUBNET::-1}150,255.255.255.0,6h" > /etc/dnsmasq.conf
+echo "port=0" >> /etc/dnsmasq.conf
 
 ## set up port forwarding to cameras
-sysctl -w net.ipv4.ip_forward=1
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-echo "streams:" > /etc/go2rtc.yaml
 NUM=0
 for CAM in ${CAM_MACS//,/ }
 do
     IP=192.168.254.$((NUM+10))
-    echo "dhcp-host=${CAM},${IP},WYZECAM${NUcM}" >> /etc/dnsmasq.conf
+    echo "dhcp-host=${CAM},${IP},CAM${NUcM}" >> /etc/dnsmasq.conf
 
     RTSP_PORT=$(printf '554%02d' ${NUM})
     RTC_PORT=$(printf '198%02d' ${NUM})
-    iptables -t nat -A PREROUTING -p tcp --dport $RTC_PORT -j DNAT --to-destination ${IP}:1984
-    iptables -t nat -A PREROUTING -p tcp --dport $RTSP_PORT -j DNAT --to-destination ${IP}:8554
-    iptables -A FORWARD -p tcp -d ${IP} --dport 1984 -j ACCEPT
-    iptables -A FORWARD -p tcp -d ${IP} --dport 8554 -j ACCEPT
+    iptables -t nat -A PREROUTING -p tcp --dport $RTC_PORT -j DNAT --to-destination ${IP}:80
+    iptables -t nat -A PREROUTING -p tcp --dport $RTSP_PORT -j DNAT --to-destination ${IP}:554
+    iptables -A FORWARD -p tcp -d ${IP} --dport 80 -j ACCEPT
+    iptables -A FORWARD -p tcp -d ${IP} --dport 554 -j ACCEPT
 
-    echo "=== Camera wyzecam$NUM: MAC $CAM Internal IP $IP RTSP $RTSP_PORT RTC $RTC_PORT"
+    echo "=== Camera CAM$NUM: MAC $CAM Internal IP $IP RTSP $RTSP_PORT RTC $RTC_PORT"
 
     NUM=$(($NUM+1))
 done
@@ -90,25 +86,16 @@ done
 iptables -t nat -A POSTROUTING -j MASQUERADE
 iptables -P FORWARD DROP
 
-echo "Configuring NTP server .."
-cat > /etc/chrony/chrony.conf <<EOF
-server 0.pool.ntp.org iburst
-server 1.pool.ntp.org iburst
-server 2.pool.ntp.org iburst
-server 3.pool.ntp.org iburst
-allow 192.168.254.0/24
-local stratum 10
-port 123
-driftfile /var/lib/chrony/drift
-logdir /var/log/chrony
-makestep 1.0 3
-EOF
-
+# busybox ntpd will serve the time from the system clock
 echo "Starting NTP server ..."
-chronyd -d &
+touch /etc/ntp.conf
+ntpd -n -l -w &
+
+echo "Starting HostAP daemon ..."
+/usr/sbin/hostapd /etc/hostapd.conf &
 
 echo "Starting DHCP server ..."
 dnsmasq -d &
 
-echo "Starting HostAP daemon ..."
-/usr/sbin/hostapd /etc/hostapd.conf
+# wait for signals
+wait $!

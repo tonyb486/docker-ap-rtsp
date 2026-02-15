@@ -1,0 +1,49 @@
+services:
+    docker-ap-rtsp:
+        image: docker-ap-rtsp
+        container_name: docker-ap-rtsp
+        build: .
+        cap_add:
+            - NET_ADMIN
+        environment:
+            TZ: America/New_York
+            INTERFACE: INTERFACE_NAME
+            SSID: rtspcam
+            CAM_MACS: MAC1,MAC2
+            WPA_PASSPHRASE: PASSWORD
+        ports:
+            - 19800-19899:19800-19899
+            - 55400-55499:55400-55499
+        restart: always
+
+    wifi-attach:
+        image: docker:cli
+        privileged: true
+        network_mode: host
+        pid: host
+        depends_on:
+            docker-ap-rtsp:
+                condition: service_started
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /var/run/docker/netns:/var/run/netns
+        environment:
+            INTERFACE: wlx503dd129d350
+            TARGET_CONTAINER: docker-ap-rtsp
+        entrypoint:
+            - /bin/sh
+            - -c
+            - |
+                apk add --no-cache iw iproute2 &&
+                echo "Finding PID and NETNS for $$TARGET_CONTAINER..." &&
+                CONTAINER_PID=$$(docker container inspect -f '{{.State.Pid}}' $$TARGET_CONTAINER) &&
+                NETNS=$$(ip netns identify $$CONTAINER_PID) &&
+                echo "Finding PHY for $$INTERFACE..." &&
+                PHY="phy"$$(iw dev $$INTERFACE info | grep wiphy | awk '{print $$2}') &&
+                echo "Moving $$PHY to netns $$NETNS..." &&
+                iw phy $$PHY set netns $$CONTAINER_PID &&
+                echo "Enabling IP forwarding..."
+                ip netns exec $$NETNS sysctl -w net.ipv4.ip_forward=1 &&
+                echo "Disabling rfkill..."
+                ip netns exec $$NETNS rfkill unblock wlan &&
+                echo 'Done!'

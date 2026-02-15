@@ -48,46 +48,38 @@ container that reattaches network interface to network namespace of this
 container. This keeps the wireless device in the network namespace, and lets
 us set up a firewall in there.
 
-There is a sample compose.yml below.
+There is a sample compose.yml that runs both containers, you should use it.
 
-For CAM_MACS, provide a comma separated list of all camera MAC addresses.
+It includes:
 
-```yaml
-services:
-    docker-ap-rtsp:
-        image: docker-ap-rtsp
-        build: .
-        cap_add:
-            - NET_ADMIN
-        environment:
-            TZ: America/New_York
-            INTERFACE: wlan0
+- The container itself, which runs unprivileged in its own netns.
+- A helper that runs briefly at startup in privileged mode to grant the main containe access to the wireless device.
+
+Adjust it to define the wireless interface to be used (listed twice), the SSID,
+
+```
+            INTERFACE: INTERFACE_NAME
             SSID: rtspcam
-            CAM_MACS: MACADDRESS,MACADDRESS,MACADDRESS
-            WPA_PASSPHRASE: PASSWORD_FOR_WIFI
-            CONTAINER_NAME: docker-ap-rtsp
-        ports:
-            - 19800-19899:19800-19899
-            - 55400-55499:55400-55499
-        privileged: true
-        volumes:
-            - /sys:/sys:rw
-            - /var/run/docker.sock:/var/run/docker.sock:rw
-        restart: always
+            CAM_MACS: MAC1,MAC2
 ```
 
-The script forwards ports 198xx and 554xx to 1984 and 8554 on each. So, for the first camera, port 55400 will go to port 8554 on the camera. For the second, port 55401 will go to port 8554 on the camera. This continues for as many as you list in the CAM_MACS.
+If you run outside of compose, you'll have to attach the device yourself, read
+compose.yml.sample for how to do this.
+
+The container forwards ports 198xx and 554xx to 1984 and 8554 on each. So, for the first camera, port 55400 will go to port 8554 on the camera. For the second, port 55401 will go to port 8554 on the camera. This continues for as many as you list in the CAM_MACS.
 
 You'll see this in the output for your reference:
 
 ```
-=== Camera wyzecam0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
-=== Camera wyzecam1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
+
+=== Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
+=== Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
+
 ```
 
 Configure your camera to provide RTSP on port 8554, and to use 192.168.254.1 as an NTP server.
 
-I use wyze cameras with modified firmware for this. I have a [forked repository](https://github.com/tonyb486/wz_mini_hacks) for the firmware I use. The original is a bit rough around the edges, I modified it by upgrading the go2rtc and ffmpeg binaries with new ones.
+I use wyze cameras with OpenIPC for this.
 
 ## License
 
@@ -97,3 +89,7 @@ MIT
 
 Thanks to https://github.com/sdelrio/rpi-hostap and https://github.com/offlinehacker/docker-ap
 for providing original implementation of a related idea, some of which is used here.
+
+```
+
+```
