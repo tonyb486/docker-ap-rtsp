@@ -51,17 +51,17 @@ EOF
 
 # Set up the interface
 echo "Setting interface ${INTERFACE}"
+# note, we can't use ip because it drops capabilities. so we use net-tools
+# from alpine, since we also can't give cap_net_admin to busybox.
+# (see https://marcoguerri.github.io/2023/10/13/capabilities-and-docker.html)
+ifconfig ${INTERFACE} ${AP_ADDR}/24 up
 
-ip link set ${INTERFACE} up
-ip addr flush dev ${INTERFACE}
-ip addr add ${AP_ADDR}/24 dev ${INTERFACE}
-
-# Set up DHCP
+# DHCP
 echo "Configuring DHCP server and port forwarding .."
 echo "dhcp-range=${SUBNET::-1}101,${SUBNET::-1}150,255.255.255.0,6h" > /etc/dnsmasq.conf
 echo "port=0" >> /etc/dnsmasq.conf
 
-## set up port forwarding to cameras
+## Port forwarding to cameras
 iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 NUM=0
@@ -97,4 +97,4 @@ echo "Starting DHCP server ..."
 dnsmasq -d &
 
 # wait for signals
-wait $!
+wait
