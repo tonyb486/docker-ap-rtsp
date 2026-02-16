@@ -64,8 +64,8 @@ The container forwards ports 198xx and 554xx to 80 and 554 on each of the camera
 You'll see this in the output for your reference:
 
 ```
-=== Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
-=== Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
+=== Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 WEB 19800
+=== Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 WEB 19801
 ```
 
 These are the only port forwards.
