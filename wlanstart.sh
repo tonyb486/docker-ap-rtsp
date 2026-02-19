@@ -59,13 +59,13 @@ do
     echo "dhcp-host=${CAM},${IP},CAM${NUcM}" >> /etc/dnsmasq.conf
 
     RTSP_PORT=$(printf '554%02d' ${NUM})
-    RTC_PORT=$(printf '198%02d' ${NUM})
-    iptables -t nat -A PREROUTING -p tcp --dport $RTC_PORT -j DNAT --to-destination ${IP}:80
+    WEB_PORT=$(printf '198%02d' ${NUM})
+    iptables -t nat -A PREROUTING -p tcp --dport $WEB_PORT -j DNAT --to-destination ${IP}:80
     iptables -t nat -A PREROUTING -p tcp --dport $RTSP_PORT -j DNAT --to-destination ${IP}:554
     iptables -A FORWARD -p tcp -d ${IP} --dport 80 -j ACCEPT
     iptables -A FORWARD -p tcp -d ${IP} --dport 554 -j ACCEPT
 
-    echo "=== Camera CAM$NUM: MAC $CAM Internal IP $IP RTSP $RTSP_PORT RTC $RTC_PORT"
+    echo "=== Camera CAM$NUM: MAC $CAM Internal IP $IP RTSP $RTSP_PORT WEB $WEB_PORT"
 
     NUM=$(($NUM+1))
 done

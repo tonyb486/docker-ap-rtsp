@@ -2,7 +2,7 @@
 
 This container starts wireless access point (hostap) and dhcp server (dnsmasq) in a docker
 container. It does not provide Internet access to connected devices. Instead, it provides
-an ntp server (crony) and forwards outside ports to the camera to allow for RTSP access.
+an ntp server and forwards outside ports to the camera to allow for RTSP access.
 
 ## Requirements
 
@@ -43,11 +43,9 @@ country US: DFS-FCC
 
 ## Build / run
 
-This includes a compose.yml file, and is intended to be used with docker compose. It runs two containers, one is a short-lived container in privileged mode, the other is the main container in a private netns with CAP_NET_ADMIN.
+This includes a compose.yml file, and is intended to be used with docker compose. It runs two containers, one is a short-lived container in privileged mode, the other is the main container in a private netns with CAP_NET_ADMIN. The main container runs unprivileged.
 
-The short-lived container requires access to docker socket, so it attach the wireless network interface to network namespace of this
-container. This keeps the wireless device in the network namespace, and lets
-us set up a firewall in there.
+The short-lived container requires access to docker socket, so it can attach the wireless network interface to network namespace of this container. This keeps the wireless device in the container's network namespace, and lets us set up a firewall in there.
 
 Create a file, rtsp.env, and add in your interface (e.g., wlan0), the SSID you want to use, the password for that SSID, and a list of MAC addresses.
 
@@ -66,8 +64,8 @@ The container forwards ports 198xx and 554xx to 80 and 554 on each of the camera
 You'll see this in the output for your reference:
 
 ```
-=== Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 RTC 19800
-=== Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 RTC 19801
+=== Camera CAM0: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.10 RTSP 55400 WEB 19800
+=== Camera CAM1: MAC D0:3F:27:XX:XX:XX Internal IP 192.168.254.11 RTSP 55401 WEB 19801
 ```
 
 These are the only port forwards.
