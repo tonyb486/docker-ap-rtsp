@@ -80,6 +80,8 @@ function end() {
     echo "Shutting down..."
     supervisorctl -c /etc/supervisord.conf stop all
     pkill supervisord
+    while pgrep -l supervisord; do sleep 1;done;
+    echo "Terminated."
     exit 0
 }
 trap end SIGINT SIGTERM
