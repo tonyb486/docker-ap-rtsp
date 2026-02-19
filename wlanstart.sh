@@ -74,16 +74,4 @@ iptables -t nat -A POSTROUTING -j MASQUERADE
 iptables -P FORWARD DROP
 
 # start tasks
-/usr/bin/supervisord -c /etc/supervisord.conf &
-
-function end() {
-    echo "Shutting down..."
-    supervisorctl -c /etc/supervisord.conf stop all
-    pkill supervisord
-    while pgrep -l supervisord; do sleep 1;done;
-    echo "Terminated."
-    exit 0
-}
-trap end SIGINT SIGTERM
-
-wait -n
+exec /usr/bin/supervisord -c /etc/supervisord.conf
