@@ -1,17 +1,5 @@
 #!/bin/bash -e
 
-# this is our whole init system
-handle_shutdown() {
-  echo "Shutting down..."
-  for i in hostapd ntpd dnsmasq; do
-    echo "Stopping $i..."
-    pkill $i && while pgrep -l $i>/dev/null; do sleep 1;done;
-  done;
-  echo "Done!"
-  exit 0
-}
-trap handle_shutdown SIGINT SIGTERM
-
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Default values
@@ -28,7 +16,7 @@ true ${CONTAINER_NAME:=hostapd}
 
 echo "Waiting for wireless interface to be attached to container..."
 
-until ifconfig ${INTERFACE} 2>/dev/null; do
+until ifconfig ${INTERFACE} &>/dev/null; do
     sleep 1;
 done
 
@@ -50,7 +38,7 @@ wmm_enabled=1
 EOF
 
 # Set up the interface
-echo "Setting interface ${INTERFACE}"
+echo "Configuring interface ${INTERFACE}..."
 # note, we can't use ip because it drops capabilities. so we use net-tools
 # from alpine, since we also can't give cap_net_admin to busybox.
 # (see https://marcoguerri.github.io/2023/10/13/capabilities-and-docker.html)
@@ -85,16 +73,15 @@ done
 iptables -t nat -A POSTROUTING -j MASQUERADE
 iptables -P FORWARD DROP
 
-# busybox ntpd will serve the time from the system clock
-echo "Starting NTP server ..."
-touch /etc/ntp.conf
-ntpd -n -l -w &
+# start tasks
+/usr/bin/supervisord -c /etc/supervisord.conf &
 
-echo "Starting HostAP daemon ..."
-/usr/sbin/hostapd /etc/hostapd.conf &
+function end() {
+    echo "Shutting down..."
+    supervisorctl -c /etc/supervisord.conf stop all
+    pkill supervisord
+    exit 0
+}
+trap end SIGINT SIGTERM
 
-echo "Starting DHCP server ..."
-dnsmasq -d &
-
-# wait for signals
-wait
+wait -n
