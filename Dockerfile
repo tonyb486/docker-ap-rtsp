@@ -1,7 +1,8 @@
 FROM alpine
 
-RUN apk add --no-cache hostapd iptables dnsmasq bash libcap net-tools supervisor
+RUN apk add --no-cache hostapd iptables dnsmasq bash libcap net-tools supervisor iw iproute2 docker
 ADD wlanstart.sh /bin/wlanstart.sh
+ADD wlanattach.sh /bin/wlanattach.sh
 ADD supervisord.conf /etc/supervisord.conf
 
 RUN addgroup -S alpine && adduser -S alpine -G alpine
